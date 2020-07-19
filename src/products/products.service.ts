@@ -1,7 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { Product } from './product.entity';
-import { Repository } from 'typeorm';
+import { Repository, DeleteResult } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
+import { resolve } from 'path';
+import { unlinkSync } from 'fs';
+import {
+  IPaginationOptions,
+  paginate,
+  Pagination,
+} from 'nestjs-typeorm-paginate';
 
 @Injectable()
 export class ProductsService {
@@ -10,23 +17,84 @@ export class ProductsService {
     private readonly productsRepository: Repository<Product>,
   ) {}
 
-  findAll(): Promise<Product[]> {
-    return this.productsRepository.find();
-  }
+  async findAll(
+    wires: number,
+    height: boolean,
+    min_height: number,
+    max_height: number,
+    width: boolean,
+    min_width: number,
+    max_width: number,
+    format: number,
+    options: IPaginationOptions,
+  ): Promise<Pagination<Product>> {
+    const products = this.productsRepository
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.format', 'format');
 
-  findById(id: number): Promise<Product> {
-    return this.productsRepository.findOne(id);
+    const productsWithFormat = format
+      ? products.where('product.format = :format', { format })
+      : products;
+
+    const productsWithWidth = width
+      ? productsWithFormat.where(
+          'product.width BETWEEN :min_width AND :max_width',
+          { min_width, max_width },
+        )
+      : productsWithFormat;
+
+    const productsWithHeight = height
+      ? productsWithWidth.where(
+          'product.height BETWEEN :min_height AND :max_height',
+          { min_height, max_height },
+        )
+      : productsWithWidth;
+
+    const productsWithWires = wires
+      ? productsWithHeight.where('product.wires = :wires', { wires })
+      : productsWithHeight;
+
+    return paginate<Product>(
+      productsWithWires.orderBy('product.id', 'ASC'),
+      options,
+    );
   }
 
   create(product: Product): Promise<Product> {
     return this.productsRepository.save(product);
   }
 
-  async upload(id: number, file: Express.Multer.File): Promise<Product> {
-    const product = await this.productsRepository.findOne(id);
+  async upload(id: string, file: Express.Multer.File): Promise<Product> {
+    const product = await this.productsRepository.findOneOrFail(id);
 
     product.image = file.filename;
 
     return this.productsRepository.save(product);
+  }
+
+  async update(id: string, product: Product): Promise<Product> {
+    const oldProduct = await this.productsRepository.findOneOrFail(id);
+
+    if (oldProduct.image) {
+      unlinkSync(
+        resolve(__dirname, '..', '..', 'tmp', 'uploads', oldProduct.image),
+      );
+    }
+
+    const newProduct = this.productsRepository.merge(oldProduct, product);
+
+    return this.productsRepository.save(newProduct);
+  }
+
+  async delete(id: string): Promise<DeleteResult> {
+    const oldProduct = await this.productsRepository.findOneOrFail(id);
+
+    if (oldProduct.image) {
+      unlinkSync(
+        resolve(__dirname, '..', '..', 'tmp', 'uploads', oldProduct.image),
+      );
+    }
+
+    return this.productsRepository.delete(id);
   }
 }

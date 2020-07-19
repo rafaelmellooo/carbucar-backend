@@ -5,7 +5,7 @@ import { Format } from 'src/formats/format.entity';
 @Entity()
 export class Product {
   @PrimaryColumn()
-  id: number;
+  id: string;
 
   @Column()
   height: number;
@@ -19,8 +19,11 @@ export class Product {
 
   @Expose()
   get image_url(): string {
-    return `http://localhost:3333/uploads/${this.image}`;
+    return this.image ? `http://localhost:3333/uploads/${this.image}` : null;
   }
+
+  @Column()
+  wires: number;
 
   @ManyToOne(
     () => Format,
