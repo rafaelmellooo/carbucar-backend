@@ -25,6 +25,7 @@ export class ProductsService {
     width: boolean,
     min_width: number,
     max_width: number,
+    sort_by = 'id',
     format: number,
     options: IPaginationOptions,
   ): Promise<Pagination<Product>> {
@@ -33,29 +34,29 @@ export class ProductsService {
       .leftJoinAndSelect('product.format', 'format');
 
     const productsWithFormat = format
-      ? products.where('product.format = :format', { format })
+      ? products.andWhere('product.format = :format', { format })
       : products;
 
     const productsWithWidth = width
-      ? productsWithFormat.where(
+      ? productsWithFormat.andWhere(
           'product.width BETWEEN :min_width AND :max_width',
           { min_width, max_width },
         )
       : productsWithFormat;
 
     const productsWithHeight = height
-      ? productsWithWidth.where(
+      ? productsWithWidth.andWhere(
           'product.height BETWEEN :min_height AND :max_height',
           { min_height, max_height },
         )
       : productsWithWidth;
 
     const productsWithWires = wires
-      ? productsWithHeight.where('product.wires = :wires', { wires })
+      ? productsWithHeight.andWhere('product.wires = :wires', { wires })
       : productsWithHeight;
 
     return paginate<Product>(
-      productsWithWires.orderBy('product.id', 'ASC'),
+      productsWithWires.orderBy(`product.${sort_by}`, 'DESC'),
       options,
     );
   }

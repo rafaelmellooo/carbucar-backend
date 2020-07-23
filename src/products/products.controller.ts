@@ -33,6 +33,7 @@ export class ProductsController {
     @Query('height') height: string,
     @Query('width') width: string,
     @Query('format') format: number,
+    @Query('sort_by') sort_by: string,
     @Query('page') page = 1,
   ): Promise<Pagination<Product>> {
     const [min_height, max_height] = height
@@ -51,6 +52,7 @@ export class ProductsController {
       !!width,
       min_width,
       max_width,
+      sort_by,
       format,
       {
         page,
