@@ -73,13 +73,17 @@ export class ProductsService {
     return this.productsRepository.save(product);
   }
 
-  async update(id: string, product: Product): Promise<Product> {
+  async update(id: string, product: Product, has_newimage: boolean): Promise<Product> {
     const oldProduct = await this.productsRepository.findOneOrFail(id);
 
-    if (oldProduct.image) {
-      unlinkSync(
-        resolve(__dirname, '..', '..', 'tmp', 'uploads', oldProduct.image),
-      );
+    if (has_newimage) {
+      if (oldProduct.image) {
+        unlinkSync(
+          resolve(__dirname, '..', '..', 'tmp', 'uploads', oldProduct.image),
+        );
+
+        oldProduct.image = null
+      }
     }
 
     const newProduct = this.productsRepository.merge(oldProduct, product);

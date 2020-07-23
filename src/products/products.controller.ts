@@ -92,8 +92,8 @@ export class ProductsController {
 
   @UseInterceptors(ClassSerializerInterceptor)
   @Put(':id')
-  update(@Param('id') id: string, @Body() product: Product): Promise<Product> {
-    return this.productsService.update(id, product);
+  update(@Param('id') id: string, @Body() product: Product, @Body('has_newimage') has_newimage: boolean): Promise<Product> {
+    return this.productsService.update(id, product, has_newimage);
   }
 
   @Delete(':id')
